@@ -37,7 +37,7 @@
         
         <!-- Google Driveから選択ボタン -->
         <div class="mt-4 text-center">
-            <button id="googleDriveButton" class="px-6 py-2 rounded-full font-bold text-white bg-red-600 hover:bg-red-700 transition duration-300">
+            <button id="googleDriveButton" class="px-6 py-2 rounded-full font-bold text-white bg-red-600 hover:bg-red-700 transition duration-300" disabled>
                 GoogleDriveから選択
             </button>
         </div>
@@ -168,15 +168,18 @@
 
         // --- Google API初期化とPickerの準備 ---
         function loadGapi() {
-            gapi.load('client:auth2', () => {
+            gapi.load('client', () => {
                 gapi.client.init({
                     apiKey: GOOGLE_API_KEY,
                     clientId: GOOGLE_CLIENT_ID,
                     scope: SCOPES
                 }).then(
                     () => {
-                        console.log('gapi client initialized');
-                        gapi.load('picker', onPickerApiLoad);
+                        console.log('gapi.client initialized');
+                        gapi.load('picker', () => {
+                            googleDriveButton.disabled = false;
+                            googleDriveButton.addEventListener('click', handleAuthAndPicker);
+                        });
                     },
                     (reason) => {
                         console.error('gapi.client.init failed:', reason);
@@ -186,27 +189,17 @@
             });
         }
 
-        function onPickerApiLoad() {
-            googleDriveButton.addEventListener('click', handleAuthAndPicker);
-        }
-
         function handleAuthAndPicker() {
-            const authInstance = gapi.auth2.getAuthInstance();
-            if (authInstance.isSignedIn.get()) {
-                console.log('User is already signed in');
-                buildPicker();
-            } else {
-                authInstance.signIn().then(
-                    () => {
-                        console.log('Authentication successful');
-                        buildPicker();
-                    },
-                    (error) => {
-                        console.error('Authentication failed:', error);
-                        showMessage('Googleアカウントへの認証に失敗しました。', 'error');
-                    }
-                );
-            }
+            gapi.auth2.getAuthInstance().signIn().then(
+                () => {
+                    console.log('Authentication successful');
+                    buildPicker();
+                },
+                (error) => {
+                    console.error('Authentication failed:', error);
+                    showMessage('Googleアカウントへの認証に失敗しました。', 'error');
+                }
+            );
         }
 
         function buildPicker() {
